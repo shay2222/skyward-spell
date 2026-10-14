@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Skyward Spell</title>
+<meta name="description" content="A storybook adventure: help Flint, a little dragon hexed by the goblin Malgrin, fly again by gathering the ingredients for the Skyward Spell.">
+<meta name="theme-color" content="#141a33">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Alegreya+Sans:ital,wght@0,500;0,700;0,800;1,500&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --ink: #141a33;
+  --ink-2: #1f2850;
+  --parchment: #f7ecd2;
+  --parchment-2: #ead8b0;
+  --gold: #e9b949;
+  --gold-deep: #a8761c;
+  --ember: #ff8a4c;
+  --jade: #57d0a0;
+  --hex: #b37cff;
+  --text-dim: #c9c2d8;
+  --display: "Cinzel Decorative", "Palatino Linotype", Georgia, serif;
+  --body: "Alegreya Sans", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: var(--ink); overflow: hidden; }
+body { font-family: var(--body); color: var(--parchment); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+button { font-family: var(--body); }
+button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* panels share one look: deep ink glass with a thin gold edge */
+.glass {
+  background: linear-gradient(180deg, rgba(31, 40, 80, 0.88), rgba(20, 26, 51, 0.92));
+  border: 1.5px solid rgba(233, 185, 73, 0.55);
+  box-shadow: 0 18px 50px rgba(5, 8, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* loading */
+#loading {
+  position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); z-index: 20;
+  transition: opacity 600ms ease;
+}
+#loading.done { opacity: 0; pointer-events: none; }
+#loading p { margin: 0; font-size: 20px; color: var(--text-dim); letter-spacing: 0.04em; }
+#loading .spark { display: inline-block; color: var(--gold); animation: twinkle 1.2s ease-in-out infinite; }
+@keyframes twinkle { 50% { opacity: 0.3; transform: scale(0.8); } }
+
+/* title */
+#title {
+  position: fixed; top: 50%; right: max(28px, 6vw); transform: translateY(-50%);
+  width: min(430px, calc(100vw - 32px)); padding: 26px 28px 24px; border-radius: 22px;
+  display: grid; gap: 14px; z-index: 5; transition: opacity 500ms ease, transform 500ms ease;
+}
+#title { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+#title.leaving { opacity: 0; transform: translateY(-46%); pointer-events: none; }
+@media (max-height: 760px) and (min-width: 761px) and (orientation: landscape) {
+  #title { padding: 18px 22px 16px; gap: 10px; }
+  #title h1 { font-size: clamp(30px, 4.2vw, 40px); }
+  .story { font-size: 16px; line-height: 1.4; }
+  .hero-btn { padding: 8px 12px 9px; }
+  #begin { padding: 11px 16px 12px; font-size: 20px; }
+}
+.kicker { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+#title h1 {
+  margin: 0; font-family: var(--display); font-weight: 900; font-size: clamp(34px, 5.2vw, 50px); line-height: 1.02;
+  color: var(--parchment); text-wrap: balance;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 28px rgba(233, 185, 73, 0.25);
+}
+#title h1 span { display: block; font-size: 0.58em; color: var(--gold); letter-spacing: 0.02em; }
+.story { margin: 0; font-size: 18px; line-height: 1.45; color: var(--text-dim); }
+.story b { color: var(--parchment); font-weight: 700; }
+.story .flint { color: var(--jade); }
+.story .malgrin { color: var(--hex); }
+.choose { margin: 4px 0 0; font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--parchment-2); }
+.heroes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hero-btn {
+  display: grid; gap: 2px; text-align: left; padding: 10px 14px 11px; border-radius: 14px; cursor: pointer;
+  background: rgba(247, 236, 210, 0.06); border: 1.5px solid rgba(247, 236, 210, 0.22); color: var(--parchment);
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.hero-btn b { font-size: 21px; font-weight: 800; }
+.hero-btn small { font-size: 14px; color: var(--text-dim); }
+.hero-btn:hover { background: rgba(247, 236, 210, 0.12); }
+.hero-btn[aria-pressed="true"] { background: rgba(233, 185, 73, 0.18); border-color: var(--gold); }
+.hero-btn[aria-pressed="true"] b::after { content: " ✦"; color: var(--gold); font-size: 0.8em; }
+#begin {
+  margin-top: 4px; padding: 13px 18px 14px; border-radius: 14px; border: 0; cursor: pointer;
+  font-size: 22px; font-weight: 800; letter-spacing: 0.02em; color: #2a1606;
+  background: linear-gradient(180deg, #ffd77a, var(--gold) 55%, #d39a2a);
+  box-shadow: 0 4px 0 var(--gold-deep), 0 10px 24px rgba(233, 185, 73, 0.25);
+  transition: transform 90ms ease, box-shadow 90ms ease, filter 120ms ease;
+}
+#begin:hover { filter: brightness(1.06); transform: translateY(-1px); }
+#begin:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--gold-deep); }
+.keys { margin: 2px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 15px; color: var(--text-dim); }
+kbd {
+  font-family: var(--body); font-weight: 800; font-size: 13px; color: var(--parchment);
+  background: rgba(247, 236, 210, 0.1); border: 1px solid rgba(247, 236, 210, 0.3); border-bottom-width: 2px; border-radius: 6px; padding: 0 6px;
+}
+.touch-note { margin: 0; font-size: 14px; font-weight: 700; color: var(--ember); }
+@media (hover: hover) and (pointer: fine) { .touch-note { display: none; } }
+#badge {
+  position: fixed; left: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 4;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--parchment-2);
+  padding: 4px 12px 5px; border-radius: 999px;
+}
+
+/* in-game HUD */
+#place {
+  position: fixed; left: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); z-index: 4;
+  padding: 7px 16px 8px; border-radius: 999px; font-size: 17px; font-weight: 800; letter-spacing: 0.03em;
+}
+#place small { font-weight: 500; color: var(--text-dim); margin-left: 8px; }
+#hint {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); transform: translateX(-50%);
+  max-width: calc(100vw - 32px); padding: 9px 18px 10px; border-radius: 999px; z-index: 4;
+  font-size: 17px; font-weight: 700; text-align: center; transition: opacity 500ms ease;
+}
+#hint.fade { opacity: 0; }
+#toast {
+  position: fixed; left: 50%; top: 18%; transform: translateX(-50%); z-index: 6; pointer-events: none;
+  font-family: var(--display); font-weight: 900; font-size: clamp(26px, 4vw, 40px); color: var(--gold);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 24px rgba(233, 185, 73, 0.4); opacity: 0; white-space: nowrap;
+}
+#toast.show { animation: toast 2.4s ease both; }
+@keyframes toast { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.92); } 12%, 80% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -8px); } }
+
+/* Flint's speech bubble follows him around */
+#bubble {
+  position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none;
+  width: max-content; max-width: min(300px, 70vw); padding: 9px 14px 10px; border-radius: 16px;
+  background: var(--parchment); color: #2a2238; font-size: 16.5px; font-weight: 700; line-height: 1.3;
+  box-shadow: 0 6px 18px rgba(5, 8, 20, 0.35); transform: translate(-50%, -100%);
+  transition: opacity 250ms ease;
+}
+#bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -9px; margin-left: -9px;
+  border: 9px solid transparent; border-bottom: 0; border-top-color: var(--parchment);
+}
+#bubble .who { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #1f8a63; }
+#bubble.fade { opacity: 0; }
+
+/* hearts and the spell book */
+#hud {
+  position: fixed; right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); z-index: 4;
+  display: grid; justify-items: end; gap: 8px; pointer-events: none;
+}
+#hearts { display: flex; gap: 4px; padding: 6px 10px; border-radius: 999px; }
+#hearts svg { width: 26px; height: 26px; display: block; }
+#hearts .full { fill: #f0405a; stroke: #5a0a1a; }
+#hearts .empty { fill: rgba(247, 236, 210, 0.12); stroke: rgba(247, 236, 210, 0.45); }
+#hearts .hit { animation: heartHit 450ms ease; }
+@keyframes heartHit { 30% { transform: scale(1.35); } }
+#spell { display: flex; gap: 6px; margin: 0; padding: 6px 10px; list-style: none; border-radius: 999px; }
+#spell li {
+  width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.5px solid rgba(247, 236, 210, 0.25); color: rgba(247, 236, 210, 0.28); background: rgba(10, 14, 30, 0.35);
+}
+#spell li svg { width: 20px; height: 20px; }
+#spell li.found { color: #ffe08a; border-color: var(--gold); background: radial-gradient(circle, rgba(233, 185, 73, 0.35), rgba(233, 185, 73, 0.08)); box-shadow: 0 0 14px rgba(233, 185, 73, 0.45); }
+#spell li.new { animation: found 1.4s ease; }
+@keyframes found { 20% { transform: scale(1.5); } }
+#objective {
+  position: fixed; left: 18px; top: calc(env(safe-area-inset-top, 0px) + 60px); z-index: 4; margin: 0;
+  max-width: min(380px, calc(100vw - 200px)); font-size: 15px; font-weight: 700; color: var(--parchment-2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 0, 0, 0.5);
+}
+#banner {
+  position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%); z-index: 6; pointer-events: none;
+  display: grid; justify-items: center; gap: 2px; opacity: 0; text-align: center; white-space: nowrap;
+}
+#banner small { font-size: 15px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); text-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 2px 8px rgba(0, 0, 0, 0.8); }
+#banner strong {
+  font-family: var(--display); font-weight: 900; font-size: clamp(30px, 5.4vw, 58px); color: var(--parchment);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 3px 0 rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 0, 0, 0.7), 0 0 22px rgba(233, 185, 73, 0.3);
+}
+#banner.show { animation: banner 4.2s ease both; }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, -40%); } 15%, 75% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-50%, -56%); } }
+#continue {
+  padding: 11px 16px 12px; border-radius: 14px; cursor: pointer; text-align: left;
+  background: rgba(87, 208, 160, 0.14); border: 1.5px solid rgba(87, 208, 160, 0.7); color: var(--parchment);
+  font-size: 18px; font-weight: 800; display: grid; gap: 1px;
+}
+#continue small { font-size: 14px; font-weight: 500; color: var(--text-dim); }
+#continue:hover { background: rgba(87, 208, 160, 0.22); }
+
+/* story cards: the prologue, the ritual, the ending */
+#story {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); transform: translate(-50%, 12px);
+  width: min(680px, calc(100vw - 28px)); z-index: 7; padding: 16px 22px 14px; border-radius: 18px; cursor: pointer;
+  background: linear-gradient(180deg, #fbf3df, #efe0bc); color: #2a2238; border: 2px solid #c9a35a;
+  box-shadow: 0 16px 40px rgba(5, 8, 20, 0.5), inset 0 0 0 4px rgba(255, 255, 255, 0.35);
+  opacity: 0; pointer-events: none; transition: opacity 220ms ease, transform 220ms ease;
+}
+#story.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#story .who { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #8a6418; }
+#story .who.flint { color: #1f8a63; }
+#story .who.malgrin { color: #7a2ad0; }
+#story .who.hero { color: #b5462a; }
+#story p { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.38; }
+#story p.narrator { font-family: Georgia, "Palatino Linotype", serif; font-style: italic; font-weight: 500; font-size: 20.5px; }
+#story .more { display: block; margin-top: 8px; text-align: right; font-size: 13px; font-weight: 800; color: #8a7a5a; letter-spacing: 0.06em; }
+#story .more::before { content: "▸ "; color: #c9a35a; }
+#skip {
+  position: fixed; right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); z-index: 8; display: none;
+  padding: 8px 16px 9px; border-radius: 999px; font-size: 15px; font-weight: 800; color: var(--parchment); cursor: pointer;
+  background: rgba(20, 26, 51, 0.7); border: 1.5px solid rgba(247, 236, 210, 0.35);
+}
+body.scene #skip { display: block; }
+body.scene #place, body.scene #hud, body.scene #objective, body.scene #hint, body.ending #place, body.ending #hud, body.ending #objective, body.ending #hint, body.ending #bossbar { display: none !important; }
+
+/* Malgrin's own speech bubble */
+#bubble2 {
+  position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none;
+  width: max-content; max-width: min(300px, 70vw); padding: 9px 14px 10px; border-radius: 16px;
+  background: #2a1240; color: #f4e6ff; font-size: 16.5px; font-weight: 700; line-height: 1.3; border: 1.5px solid #9a5ae0;
+  box-shadow: 0 6px 18px rgba(5, 8, 20, 0.45), 0 0 20px rgba(154, 90, 224, 0.35); transform: translate(-50%, -100%);
+  transition: opacity 250ms ease;
+}
+#bubble2::after {
+  content: ""; position: absolute; left: 50%; bottom: -9px; margin-left: -9px;
+  border: 9px solid transparent; border-bottom: 0; border-top-color: #2a1240;
+}
+#bubble2 .who { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #d0a0ff; }
+#bubble2.fade { opacity: 0; }
+
+/* Malgrin's strength */
+#bossbar {
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 14px); transform: translateX(-50%); z-index: 4;
+  display: flex; align-items: center; gap: 10px; padding: 7px 16px 8px; border-radius: 999px;
+  font-family: var(--display); font-weight: 900; font-size: 17px; color: #e8d0ff;
+}
+#bossbar .pips { display: flex; gap: 5px; }
+#bossbar .pip { width: 34px; height: 12px; border-radius: 6px; background: linear-gradient(180deg, #c27aff, #7a2ad0); box-shadow: 0 0 10px rgba(178, 110, 255, 0.6); }
+#bossbar .pip.gone { background: rgba(247, 236, 210, 0.12); box-shadow: none; }
+
+/* the end */
+#ending {
+  position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 20px;
+  background: radial-gradient(ellipse at center, rgba(20, 26, 51, 0.35), rgba(20, 26, 51, 0.75));
+  opacity: 0; pointer-events: none; transition: opacity 900ms ease;
+}
+#ending.show { opacity: 1; pointer-events: auto; }
+#ending .panel { width: min(520px, 100%); padding: 28px 30px 24px; border-radius: 24px; display: grid; gap: 12px; text-align: center; }
+#ending .kicker { margin: 0; }
+#ending h2 { margin: 0; font-family: var(--display); font-weight: 900; font-size: clamp(32px, 6vw, 48px); line-height: 1.05; color: var(--parchment); text-shadow: 0 0 26px rgba(233, 185, 73, 0.35); }
+#ending p { margin: 0; font-size: 18px; line-height: 1.45; color: var(--text-dim); }
+#ending .credits { font-size: 15px; color: var(--parchment-2); }
+#again { justify-self: center; margin-top: 6px; padding: 12px 26px 13px; border-radius: 14px; border: 0; cursor: pointer; font-size: 20px; font-weight: 800; color: #2a1606; background: linear-gradient(180deg, #ffd77a, var(--gold) 55%, #d39a2a); box-shadow: 0 4px 0 var(--gold-deep); }
+
+/* "press E to talk" */
+#prompt {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); transform: translateX(-50%); z-index: 4;
+  margin: 0; padding: 8px 16px 9px; border-radius: 999px; font-size: 17px; font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+#prompt kbd { margin-right: 6px; }
+
+/* conversations */
+#talk {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); transform: translateX(-50%); z-index: 7;
+  width: min(640px, calc(100vw - 24px)); max-height: min(62vh, 520px); border-radius: 20px; padding: 14px 16px 12px;
+  display: grid; grid-template-rows: auto 1fr auto auto auto; gap: 10px;
+}
+#talk header { display: flex; align-items: baseline; gap: 10px; }
+#talk header b { font-size: 21px; font-weight: 800; color: var(--gold); }
+#talk header small { font-size: 15px; color: var(--text-dim); flex: 1; }
+#talk-x { border: 0; background: rgba(247, 236, 210, 0.1); color: var(--parchment); width: 32px; height: 32px; border-radius: 50%; font-size: 20px; cursor: pointer; }
+#talk-log { overflow-y: auto; display: grid; gap: 8px; align-content: start; min-height: 64px; padding-right: 4px; }
+.say { margin: 0; padding: 9px 13px 10px; border-radius: 14px; font-size: 17.5px; font-weight: 700; line-height: 1.35; max-width: 92%; }
+.say.them { background: var(--parchment); color: #2a2238; justify-self: start; border-bottom-left-radius: 4px; }
+.say.me { background: rgba(87, 208, 160, 0.18); border: 1px solid rgba(87, 208, 160, 0.5); color: var(--parchment); justify-self: end; border-bottom-right-radius: 4px; font-weight: 600; }
+.say.wait { color: #6a5a7a; font-style: italic; }
+#talk-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+#talk-choices button {
+  padding: 7px 12px 8px; border-radius: 12px; cursor: pointer; font-size: 15.5px; font-weight: 700; color: var(--parchment);
+  background: rgba(247, 236, 210, 0.08); border: 1.5px solid rgba(247, 236, 210, 0.28);
+}
+#talk-choices button:hover { background: rgba(233, 185, 73, 0.18); border-color: var(--gold); }
+#talk-choices button kbd { margin-right: 5px; font-size: 12px; }
+#talk-form { display: flex; gap: 6px; }
+#talk-input {
+  flex: 1; min-width: 0; padding: 9px 12px; border-radius: 12px; font: 600 16px var(--body); color: var(--parchment);
+  background: rgba(10, 14, 30, 0.5); border: 1.5px solid rgba(247, 236, 210, 0.3); outline: none;
+}
+#talk-input:focus { border-color: var(--gold); }
+#talk-form button { padding: 0 16px; border-radius: 12px; border: 0; cursor: pointer; font-size: 16px; font-weight: 800; color: #2a1606; background: var(--gold); }
+#talk-source { font-size: 12.5px; color: var(--text-dim); letter-spacing: 0.02em; }
+#talk-source b { color: var(--jade); font-weight: 700; }
+body.talking #hint, body.talking #objective, body.talking #prompt { display: none !important; }
+
+/* dev inspector: what the dialogue system decided, and why */
+#dev {
+  position: fixed; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 120px); bottom: 12px; z-index: 8; width: min(430px, calc(100vw - 24px));
+  border-radius: 16px; padding: 12px 14px; display: grid; grid-template-rows: auto auto auto 1fr; gap: 8px; font-size: 13.5px;
+}
+#dev h2 { margin: 0; font-size: 16px; font-weight: 800; color: var(--gold); letter-spacing: 0.04em; }
+#dev .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; color: var(--text-dim); }
+#dev button { padding: 5px 10px; border-radius: 9px; border: 1px solid rgba(247, 236, 210, 0.35); background: rgba(247, 236, 210, 0.08); color: var(--parchment); cursor: pointer; font: 700 13px var(--body); }
+#live-status { color: var(--parchment-2); }
+#live-status b { color: var(--jade); }
+#talk-source button { border: 0; background: none; color: var(--gold); font: 700 12.5px var(--body); cursor: pointer; padding: 0; text-decoration: underline; }
+#dev-log { overflow-y: auto; display: grid; gap: 6px; align-content: start; }
+#dev-log div { padding: 6px 8px; border-radius: 8px; background: rgba(10, 14, 30, 0.45); border-left: 3px solid var(--jade); }
+#dev-log div.bad { border-left-color: #ff6a6a; }
+#dev-log .meta { font-weight: 800; color: var(--parchment-2); }
+#dev-log .why { color: #ff9a9a; }
+#dev-log .line { color: var(--text-dim); font-style: italic; }
+
+/* pause */
+#pause { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(10, 14, 30, 0.5); padding: 16px; }
+#pause .panel { width: min(400px, 100%); padding: 22px 24px; border-radius: 22px; display: grid; gap: 14px; }
+#pause h2 { margin: 0; font-family: var(--display); font-weight: 900; font-size: 30px; color: var(--parchment); text-align: center; }
+#pause label { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+#pause input[type=range] { accent-color: var(--gold); width: 100%; }
+#pause .keys { display: grid; gap: 4px; font-size: 15px; color: var(--text-dim); }
+#pause button { padding: 11px 16px; border-radius: 14px; border: 0; cursor: pointer; font-size: 18px; font-weight: 800; }
+#resume { color: #2a1606; background: linear-gradient(180deg, #ffd77a, var(--gold) 55%, #d39a2a); box-shadow: 0 4px 0 var(--gold-deep); }
+#to-title { color: var(--parchment); background: rgba(247, 236, 210, 0.1); border: 1.5px solid rgba(247, 236, 210, 0.3) !important; }
+
+/* touch controls: a stick wherever the left thumb lands, buttons on the right */
+#touch { position: fixed; inset: 0; z-index: 3; pointer-events: none; display: none; }
+body.touch #touch { display: block; }
+body.touch.scene #touch, body.touch.talking #touch, body.touch.ending #touch, body.touch:not(.started) #touch { display: none; }
+#stick-base, #stick-knob { position: fixed; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 120ms ease; }
+#stick-base { width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 2px solid rgba(247, 236, 210, 0.45); background: rgba(20, 26, 51, 0.25); }
+#stick-knob { width: 54px; height: 54px; margin: -27px 0 0 -27px; background: rgba(247, 236, 210, 0.7); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+#touch.active #stick-base, #touch.active #stick-knob { opacity: 1; }
+.tbtn {
+  position: fixed; pointer-events: auto; width: 74px; height: 74px; border-radius: 50%; border: 2px solid rgba(247, 236, 210, 0.55);
+  background: rgba(20, 26, 51, 0.55); color: var(--parchment); font: 800 15px var(--body); display: grid; place-items: center; touch-action: none;
+  -webkit-user-select: none; user-select: none;
+}
+.tbtn.down { background: rgba(233, 185, 73, 0.5); }
+#t-fire { right: calc(env(safe-area-inset-right, 0px) + 22px); bottom: calc(env(safe-area-inset-bottom, 0px) + 110px); border-color: var(--ember); }
+#t-dash { right: calc(env(safe-area-inset-right, 0px) + 110px); bottom: calc(env(safe-area-inset-bottom, 0px) + 34px); }
+#t-talk { right: calc(env(safe-area-inset-right, 0px) + 22px); bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); width: 64px; height: 64px; border-color: var(--jade); }
+#t-pause { right: calc(env(safe-area-inset-right, 0px) + 16px); top: calc(env(safe-area-inset-top, 0px) + 136px); width: 48px; height: 48px; font-size: 18px; }
+body.touch #prompt { bottom: calc(env(safe-area-inset-bottom, 0px) + 196px); }
+body.touch #prompt kbd { display: none; }
+body.touch #hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 250px); border-radius: 18px; width: max-content; max-width: calc(100vw - 40px); }
+body.touch #pause .keys { display: none; }
+
+#error {
+  position: fixed; inset: 0; display: grid; place-items: center; z-index: 30; background: var(--ink); padding: 24px;
+}
+#error p { max-width: 520px; font-size: 19px; line-height: 1.5; text-align: center; }
+
+@media (max-width: 760px), (orientation: portrait) {
+  #title { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); right: 50%; transform: translateX(50%); padding: 18px 18px 16px; gap: 10px; }
+  #title.leaving { transform: translate(50%, 6%); }
+  .story { font-size: 16px; }
+  .keys { display: none; }
+  .touch-note { margin: 0; font-size: 14px; font-weight: 700; color: var(--ember); }
+@media (hover: hover) and (pointer: fine) { .touch-note { display: none; } }
+#badge { display: none; }
+}
+@media (max-width: 760px), (orientation: portrait) {
+  #story { padding: 13px 16px 11px; }
+  #story p, #story p.narrator { font-size: 17px; }
+  #bossbar { top: calc(env(safe-area-inset-top, 0px) + 100px); font-size: 15px; }
+  #bossbar .pip { width: 26px; }
+}
+@media (max-width: 760px), (orientation: portrait) {
+  #talk { max-height: 70vh; padding: 12px; }
+  .say { font-size: 16px; }
+  #talk-choices button { font-size: 14.5px; }
+  #dev { top: auto; height: 45vh; }
+}
+@media (max-width: 760px), (orientation: portrait) {
+  #place { font-size: 15px; padding: 6px 12px 7px; max-width: calc(100vw - 200px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #place small { display: none; }
+  #objective { top: calc(env(safe-area-inset-top, 0px) + 104px); font-size: 14px; max-width: calc(100vw - 36px); }
+  #hud { right: 10px; gap: 6px; }
+  #hearts { padding: 5px 8px; gap: 2px; }
+  #hearts svg { width: 21px; height: 21px; }
+  #spell { padding: 5px 8px; gap: 4px; }
+  #spell li { width: 26px; height: 26px; }
+  #spell li svg { width: 16px; height: 16px; }
+  #t-pause { top: calc(env(safe-area-inset-top, 0px) + 150px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #toast.show { animation-duration: 3s; }
+  #title, #hint, #bubble { transition: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="view" tabindex="0" aria-label="The Skyward Spell: game view"></canvas>
+
+<div id="loading" role="status"><p><span class="spark">✦</span> Painting the meadow…</p></div>
+
+<section id="title" class="glass" aria-labelledby="title-h">
+  <p class="kicker">Chapter one · Willowmere Meadows</p>
+  <h1 id="title-h">The Skyward Spell <span>a dragon who can't fly</span></h1>
+  <p class="story">The goblin <b class="malgrin">Malgrin</b> hexed little <b class="flint">Flint</b>'s wings. Gather the ingredients for the Skyward Spell, from the Scroll of Knowledge to the Feather of the Four Winds, and help him fly again.</p>
+  <p class="choose" id="choose-h">Choose your hero</p>
+  <div class="heroes" role="group" aria-labelledby="choose-h">
+    <button class="hero-btn" type="button" data-look="0" aria-pressed="true"><b>Mira</b><small>Apprentice spellweaver</small></button>
+    <button class="hero-btn" type="button" data-look="1" aria-pressed="false"><b>Theo</b><small>Apprentice spellweaver</small></button>
+  </div>
+  <button id="continue" type="button" hidden><span>Continue the journey</span><small id="continue-where"></small></button>
+  <button id="begin" type="button">Begin the journey</button>
+  <ul class="keys">
+    <li><kbd>WASD</kbd> walk</li><li><kbd>Space</kbd> dash</li><li><kbd>F</kbd> Flint's fire</li><li><kbd>E</kbd> talk</li><li><kbd>Esc</kbd> pause</li>
+  </ul>
+  <p class="touch-note">On a touch screen: drag on the left to walk; tap Fire, Dash and Talk on the right.</p>
+</section>
+<p id="badge" class="glass">A game by Shane Singh · C++, WebAssembly and WebGL 2</p>
+
+<p id="place" class="glass" hidden><span id="place-name">Willowmere Meadows</span><small id="place-chapter">Chapter one</small></p>
+<p id="objective" hidden></p>
+<div id="hud" hidden>
+  <div id="hearts" class="glass" role="img" aria-label="Hearts"></div>
+  <ol id="spell" class="glass" aria-label="Ingredients of the Skyward Spell">
+    <li title="Scroll of Knowledge"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="8" width="14" height="8" rx="2"/><rect x="2.5" y="6.5" width="3.5" height="11" rx="1.6"/><rect x="18" y="6.5" width="3.5" height="11" rx="1.6"/></svg></li>
+    <li title="Water of Miracles"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 2h4v5.2a7 7 0 1 1-4 0z"/></svg></li>
+    <li title="Fire of Power"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 4 6 6.5 6 12a6 6 0 0 1-12 0c0-3 1.6-4.6 2.6-6 .3 2 1.2 3 2.2 3.3C10.4 8 11 5 12 2z"/></svg></li>
+    <li title="Elder Staff"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.2 21.2 3 20l11.6-11.6 1.2 1.2z"/><circle cx="17" cy="7" r="4"/></svg></li>
+    <li title="Feather of the Four Winds"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 3C12 3 6 8 5.5 16L3 21l1.2.5 2.3-4.4C14 17 20 11 20 3z"/></svg></li>
+  </ol>
+</div>
+<div id="banner" aria-live="polite"><small id="banner-chapter"></small><strong id="banner-name"></strong></div>
+<p id="hint" class="glass" hidden></p>
+<div id="toast" role="status" aria-live="polite"></div>
+<p id="bubble" class="fade" aria-live="polite"><span class="who">Flint</span><span id="bubble-text"></span></p>
+<p id="bubble2" class="fade" aria-live="polite"><span class="who" id="bubble2-who">Malgrin</span><span id="bubble2-text"></span></p>
+<div id="bossbar" class="glass" hidden><span>Malgrin</span><span class="pips" id="pips"></span></div>
+<div id="story" role="dialog" aria-live="polite" aria-label="Story"><span class="who" id="story-who"></span><p id="story-text"></p><span class="more">Tap, Space or Enter</span></div>
+<button id="skip" type="button">Skip ›</button>
+<section id="ending" aria-labelledby="ending-h">
+  <div class="panel glass">
+    <p class="kicker">The End</p>
+    <h2 id="ending-h">Flint flies again</h2>
+    <p id="ending-text"></p>
+    <p class="credits">A game by Shane Singh · Made with C++, WebAssembly and WebGL 2</p>
+    <button id="again" type="button">Play again</button>
+  </div>
+</section>
+<p id="prompt" class="glass" hidden><kbd>E</kbd><span id="prompt-text"></span></p>
+<section id="talk" class="glass" hidden aria-label="Conversation">
+  <header><b id="talk-name"></b><small id="talk-role"></small><button id="talk-x" type="button" aria-label="End the conversation">×</button></header>
+  <div id="talk-log" aria-live="polite"></div>
+  <div id="talk-choices"></div>
+  <form id="talk-form" autocomplete="off"><input id="talk-input" maxlength="160" placeholder="Or say something…" aria-label="Say something"><button type="submit">Say</button></form>
+  <small id="talk-source"></small>
+</section>
+<aside id="dev" class="glass" hidden aria-label="Dialogue inspector">
+  <h2>Dialogue inspector</h2>
+  <div class="row" id="dev-stats"></div>
+  <div class="row" id="live-row"><span id="live-status">Live model: off</span></div>
+  <div class="row" id="live-buttons"><button id="live-better" type="button">Turn on Llama 3.2 1B</button><button id="live-small" type="button">Turn on Qwen 2.5 0.5B (smaller)</button></div>
+  <div class="row"><button id="dev-test" type="button">Run guard tests</button><button id="dev-clear" type="button">Clear</button><span>T to hide</span></div>
+  <div id="dev-log"></div>
+</aside>
+<section id="pause" hidden aria-labelledby="pause-h">
+  <div class="panel glass">
+    <h2 id="pause-h">Paused</h2>
+    <label>Music <input id="vol-music" type="range" min="0" max="100" value="70"></label>
+    <label>Sound effects <input id="vol-sfx" type="range" min="0" max="100" value="80"></label>
+    <div class="keys"><span><kbd>WASD</kbd> walk · <kbd>Space</kbd> dash · <kbd>F</kbd> Flint's fire</span><span><kbd>E</kbd> talk · <kbd>T</kbd> dialogue inspector · <kbd>Esc</kbd> pause</span></div>
+    <button id="resume" type="button">Keep playing</button>
+    <button id="to-title" type="button">Back to the title</button>
+  </div>
+</section>
+<div id="touch" aria-hidden="true">
+  <div id="stick-base"></div><div id="stick-knob"></div>
+  <div class="tbtn" id="t-fire">Fire</div>
+  <div class="tbtn" id="t-dash">Dash</div>
+  <div class="tbtn" id="t-talk" hidden>Talk</div>
+  <div class="tbtn" id="t-pause">II</div>
+</div>
+<div id="error" hidden><p id="error-text"></p></div>
+
+<script>
+// The page's side of the game: title screen, HUD, banners, saving, Flint's speech bubble.
+window.SkyUI = (function () {
+  const $ = (id) => document.getElementById(id);
+  const EV = { READY: 1, HINT: 2, TOAST: 3, FLINT_SAYS: 4, HUD: 5, SPELL: 6, BANNER: 7, SAVE: 8, OBJECTIVE: 9, MODE: 10, SAYS: 11, STORY: 12, ENDING: 13, BOSS: 14,
+    TALK_OPEN: 16, TALK_LINE: 17, TALK_CHOICES: 18, TALK_CLOSE: 19, TALK_WAIT: 20, DEVLOG: 21, PROMPT: 22, PAUSE: 23 };
+  const SOURCES = ['written by the offline generator', 'written by the live model', 'a safe fallback line'];
+  const devStats = { lines: 0, ok: 0, rejected: 0, live: 0 };
+  let talkTimer = 0, waitEl = null;
+  const LANDS = ['Willowmere Meadows', 'Mistfen Marsh', 'Cinderpeak Crags', 'The Elderwood', 'Skyreach Cliffs', "Malgrin's Hollow"];
+  const CHAPTERS = ['Chapter one', 'Chapter two', 'Chapter three', 'Chapter four', 'Chapter five', 'The last chapter'];
+  const SAVE_KEY = 'skyward-spell-save';
+  const HEART = '<svg viewBox="0 0 24 24" stroke-width="1.6" aria-hidden="true"><path d="M12 21s-7.2-4.6-9.4-9A5.3 5.3 0 0 1 12 6.4 5.3 5.3 0 0 1 21.4 12C19.2 16.4 12 21 12 21z"/></svg>';
+  let bubbleUntil = 0, bubble2Until = 0, bubble2Slot = 1, hintTimer = 0, toastTimer = 0, started = false, lastHearts = -1, lastMask = 0, storyShown = false;
+
+  function readSave() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      const [region, look, mask] = raw.split(',').map(Number);
+      if (!(region >= 0 && region < 6)) return null;
+      return { region, look: look === 1 ? 1 : 0, mask: mask | 0 };
+    } catch (e) { return null; }
+  }
+  function writeSave(text) {
+    try { if (text) localStorage.setItem(SAVE_KEY, text); else localStorage.removeItem(SAVE_KEY); } catch (e) { /* private mode: no saving */ }
+  }
+
+  const saved = readSave();
+  if (saved && (saved.region > 0 || saved.mask > 0)) {
+    $('continue').hidden = false;
+    $('continue-where').textContent = CHAPTERS[saved.region] + ' · ' + LANDS[saved.region] + (saved.look ? ' · Theo' : ' · Mira');
+    $('begin').textContent = 'New journey';
+  }
+
+  // on a touch screen, talk about buttons instead of keys
+  function touchify(t) {
+    if (!document.body.classList.contains('touch') || !t) return t;
+    return t.replace("WASD or arrow keys to walk · Space to dash · F for Flint's fire", "Drag on the left to walk · tap Dash · tap Fire for Flint's fire")
+      .replace(/Press F \(or the gamepad's X button\)/g, 'Tap Fire').replace(/Press F/g, 'Tap Fire').replace(/press F/g, 'tap Fire')
+      .replace(/\(F\)/g, '(Fire)').replace(/F, and I'll/g, "Tap Fire, and I'll").replace(/Dash with Space/g, 'Tap Dash')
+      .replace(/and Space to dash/g, 'and Dash').replace(/Ask me to burn it, F!/g, "Tap Fire and I'll burn it!");
+  }
+  function chooseLook(look) {
+    document.querySelectorAll('.hero-btn').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.look) === look)));
+    if (window.SkyGame) window.SkyGame.game_set_look(look);
+  }
+  function leaveTitle() {
+    started = true;
+    document.body.classList.add('started');
+    $('title').classList.add('leaving');
+    $('badge').hidden = true;
+    setTimeout(() => { $('title').hidden = true; $('place').hidden = false; $('hud').hidden = false; }, 500);
+    $('view').focus();
+  }
+  function begin() {
+    if (started || !window.SkyGame) return;
+    leaveTitle();
+    window.SkyGame.game_start();
+  }
+  function resume() {
+    if (started || !window.SkyGame || !saved) return;
+    chooseLook(saved.look);
+    leaveTitle();
+    window.SkyGame.game_continue(saved.region, saved.mask);
+  }
+  $('story').addEventListener('click', () => { if (window.SkyGame) window.SkyGame.game_story_next(); });
+
+  // ---- conversations
+  const enc = new TextEncoder();
+  function addSay(who, text, cls) {
+    const p = document.createElement('p');
+    p.className = 'say ' + cls;
+    p.textContent = text;
+    $('talk-log').appendChild(p);
+    while ($('talk-log').children.length > 8) $('talk-log').firstChild.remove();
+    $('talk-log').scrollTop = 1e6;
+    return p;
+  }
+  function choose(intent, label) {
+    if (!window.SkyGame) return;
+    addSay('me', label, 'me');
+    window.SkyGame.game_talk_choose(intent);
+  }
+  function sayTyped(text) {
+    const X = window.SkyGame;
+    text = text.trim().slice(0, 160);
+    if (!X || !text) return;
+    addSay('me', text, 'me');
+    const bytes = enc.encode(text).slice(0, 500);
+    new Uint8Array(X.memory.buffer, X.game_text_buf(), 512).set(bytes);
+    X.game_talk_say(bytes.length);
+  }
+  $('talk-form').addEventListener('submit', (e) => { e.preventDefault(); sayTyped($('talk-input').value); $('talk-input').value = ''; });
+  $('talk-x').addEventListener('click', () => { if (window.SkyGame) window.SkyGame.game_talk_close(); });
+  $('prompt').addEventListener('click', () => { if (window.SkyInput) window.SkyInput.press(window.SkyInput.BTN.INTERACT); });
+  window.addEventListener('keydown', (e) => {
+    const typing = e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+    if (!$('talk').hidden && !typing && /^Digit[1-6]$/.test(e.code)) {
+      const b = $('talk-choices').children[Number(e.code.slice(5)) - 1];
+      if (b) { e.preventDefault(); b.click(); }
+    }
+    if (typing && e.code === 'Escape') { e.target.blur(); }
+    if (!typing && e.code === 'KeyT' && started) { $('dev').hidden = !$('dev').hidden; renderDevStats(); }
+  });
+  function renderDevStats() {
+    $('dev-stats').textContent = devStats.lines + ' lines · ' + devStats.ok + ' passed · ' + devStats.rejected + ' caught by the guard · ' + devStats.live + ' from the live model';
+  }
+  $('dev-test').addEventListener('click', () => { if (window.SkyGame) window.SkyGame.game_guard_selftest(); });
+
+  // ---- pause and settings
+  function readVol(key, d) { try { const v = Number(localStorage.getItem(key)); return isFinite(v) && localStorage.getItem(key) !== null ? v : d; } catch (e) { return d; } }
+  function applyVol() {
+    const m = $('vol-music').value / 100, f = $('vol-sfx').value / 100;
+    try { localStorage.setItem('skyward-music', m); localStorage.setItem('skyward-sfx', f); } catch (e) { /* fine */ }
+    if (window.SkyAudio) window.SkyAudio.volume(m, f);
+  }
+  $('vol-music').value = Math.round(readVol('skyward-music', 0.7) * 100);
+  $('vol-sfx').value = Math.round(readVol('skyward-sfx', 0.8) * 100);
+  $('vol-music').addEventListener('input', applyVol);
+  $('vol-sfx').addEventListener('input', () => { applyVol(); if (window.SkyAudio) window.SkyAudio.click(); });
+  $('resume').addEventListener('click', () => { if (window.SkyGame) window.SkyGame.game_set_paused(0); });
+  $('to-title').addEventListener('click', () => location.reload());
+  window.addEventListener('keydown', (e) => {
+    if (!$('pause').hidden && (e.code === 'Escape' || e.code === 'KeyP')) { e.preventDefault(); e.stopImmediatePropagation(); window.SkyGame.game_set_paused(0); }
+  }, true);
+
+  // ---- touch: a stick under the left thumb, buttons for the right
+  const touchEl = $('touch');
+  let stickId = null, sx = 0, sy = 0;
+  function enableTouch() { document.body.classList.add('touch'); }
+  window.addEventListener('touchstart', enableTouch, { passive: true, once: true });
+  if (window.matchMedia && matchMedia('(pointer: coarse)').matches) enableTouch();
+  const view = $('view');
+  view.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' || stickId !== null || !started) return;
+    if (e.clientX > window.innerWidth * 0.6) return;
+    stickId = e.pointerId; sx = e.clientX; sy = e.clientY;
+    try { view.setPointerCapture(e.pointerId); } catch (err) { /* synthetic or already released */ }
+    $('stick-base').style.left = sx + 'px'; $('stick-base').style.top = sy + 'px';
+    $('stick-knob').style.left = sx + 'px'; $('stick-knob').style.top = sy + 'px';
+    touchEl.classList.add('active');
+  });
+  view.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== stickId) return;
+    let dx = e.clientX - sx, dy = e.clientY - sy;
+    const l = Math.hypot(dx, dy), max = 50;
+    if (l > max) { dx *= max / l; dy *= max / l; }
+    $('stick-knob').style.left = sx + dx + 'px'; $('stick-knob').style.top = sy + dy + 'px';
+    if (window.SkyInput) window.SkyInput.stick(dx / max, dy / max);
+  });
+  const endStick = (e) => {
+    if (e.pointerId !== stickId) return;
+    stickId = null;
+    touchEl.classList.remove('active');
+    if (window.SkyInput) window.SkyInput.stick(0, 0);
+  };
+  view.addEventListener('pointerup', endStick);
+  view.addEventListener('pointercancel', endStick);
+  function tbtn(id, bit) {
+    const el = $(id);
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      el.classList.add('down');
+      if (window.SkyInput) { const I = window.SkyInput; I.press(I.BTN[bit]); I.hold(I.BTN[bit], true); }
+    });
+    const up = () => { el.classList.remove('down'); if (window.SkyInput) window.SkyInput.hold(window.SkyInput.BTN[bit], false); };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+  }
+  tbtn('t-fire', 'FIRE'); tbtn('t-dash', 'DASH'); tbtn('t-talk', 'INTERACT'); tbtn('t-pause', 'PAUSE');
+
+  // ---- the optional live model
+  const L = window.SkyLLM;
+  const LIVE_TEXT = { off: 'Live model: off. Characters use the offline generator.', loading: 'Loading the live model… ', ready: 'Live model: on. ',
+    error: 'Live model: ', unsupported: 'Live model: ' };
+  function liveStatus(state, detail) {
+    const el = $('live-status');
+    el.textContent = LIVE_TEXT[state] || '';
+    if (state === 'ready') { const b = document.createElement('b'); b.textContent = detail + ', running in this browser.'; el.appendChild(b); }
+    else if (detail) el.appendChild(document.createTextNode(detail));
+    $('live-buttons').hidden = state === 'ready' || state === 'loading' || state === 'unsupported';
+  }
+  if (L) {
+    L.on(liveStatus);
+    $('live-better').addEventListener('click', () => L.enable('better'));
+    $('live-small').addEventListener('click', () => L.enable('small'));
+  }
+  $('dev-clear').addEventListener('click', () => { $('dev-log').innerHTML = ''; });
+  $('skip').addEventListener('click', () => { if (window.SkyGame) window.SkyGame.game_story_skip(); $('view').focus(); });
+  $('again').addEventListener('click', () => { writeSave(''); location.reload(); });
+  document.querySelectorAll('.hero-btn').forEach((b) => b.addEventListener('click', () => chooseLook(Number(b.dataset.look))));
+  $('begin').addEventListener('click', begin);
+  $('continue').addEventListener('click', resume);
+  window.addEventListener('keydown', (e) => {
+    if (started) return;
+    if (e.code === 'Enter' && document.activeElement && document.activeElement.tagName === 'BUTTON') return;
+    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); begin(); }
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') chooseLook(0);
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') chooseLook(1);
+  });
+
+  function setHearts(n, max) {
+    const box = $('hearts');
+    if (box.children.length !== max) box.innerHTML = HEART.repeat(max);
+    [...box.children].forEach((h, i) => {
+      h.setAttribute('class', i < n ? 'full' : 'empty');
+      if (lastHearts >= 0 && n < lastHearts && i === n) { h.classList.add('hit'); setTimeout(() => h.classList.remove('hit'), 500); }
+    });
+    box.setAttribute('aria-label', n + ' of ' + max + ' hearts');
+    lastHearts = n;
+  }
+  function setSpell(mask) {
+    [...$('spell').children].forEach((li, i) => {
+      const has = (mask >> i) & 1;
+      li.classList.toggle('found', !!has);
+      if (has && !((lastMask >> i) & 1) && started) { li.classList.add('new'); setTimeout(() => li.classList.remove('new'), 1500); }
+    });
+    lastMask = mask;
+  }
+
+  return {
+    onEvent(kind, text, a, b) {
+      if (kind === EV.READY) {
+        setTimeout(() => { $('loading').classList.add('done'); applyVol(); }, 150);
+      } else if (kind === EV.HINT) {
+        const h = $('hint');
+        h.textContent = touchify(text);
+        h.hidden = false;
+        h.classList.remove('fade');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => h.classList.add('fade'), 7000);
+      } else if (kind === EV.TOAST) {
+        const t = $('toast');
+        t.textContent = text;
+        t.classList.remove('show');
+        void t.offsetWidth;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+      } else if (kind === EV.FLINT_SAYS) {
+        $('bubble-text').textContent = touchify(text);
+        bubbleUntil = performance.now() + (a || 3.5) * 1000;
+      } else if (kind === EV.HUD) {
+        setHearts(a | 0, b | 0);
+      } else if (kind === EV.SPELL) {
+        setSpell(a | 0);
+      } else if (kind === EV.BANNER) {
+        const [name, chapter] = text.split('|');
+        $('place-name').textContent = name;
+        $('place-chapter').textContent = chapter;
+        $('banner-name').textContent = name;
+        $('banner-chapter').textContent = chapter;
+        const bn = $('banner');
+        bn.classList.remove('show');
+        void bn.offsetWidth;
+        bn.classList.add('show');
+      } else if (kind === EV.SAVE) {
+        writeSave(text);
+      } else if (kind === EV.OBJECTIVE) {
+        $('objective').textContent = touchify(text);
+        $('objective').hidden = !text || !started;
+      } else if (kind === EV.MODE) {
+        document.body.classList.toggle('scene', a === 3);
+        document.body.classList.toggle('ending', a === 4);
+        if (a !== 5) document.body.classList.remove('talking');
+        if (a === 2) { $('hint').classList.add('fade'); }
+        if (a === 1 && started) { $('place').hidden = false; $('hud').hidden = false; }
+      } else if (kind === EV.SAYS) {
+        const [who, line] = text.split('|');
+        $('bubble2-who').textContent = who;
+        $('bubble2-text').textContent = line;
+        bubble2Until = performance.now() + (a || 3) * 1000;
+        bubble2Slot = b || 1;
+      } else if (kind === EV.STORY) {
+        const card = $('story');
+        if (!text) { card.classList.remove('show'); storyShown = false; return; }
+        const [who, line] = text.split('|');
+        const w = $('story-who');
+        w.textContent = who || '';
+        w.className = 'who ' + (who === 'Flint' ? 'flint' : who === 'Malgrin' ? 'malgrin' : who ? 'hero' : '');
+        w.hidden = !who;
+        $('story-text').textContent = touchify(line);
+        $('story-text').className = who ? '' : 'narrator';
+        card.classList.add('show');
+        storyShown = true;
+        bubbleUntil = 0;
+      } else if (kind === EV.ENDING) {
+        $('ending-text').textContent = text + ' and Flint gathered the five pieces of the Skyward Spell, broke Malgrin\'s hex, and gave the sky back to the dragons of Willowmere.';
+        $('ending').classList.add('show');
+        $('again').focus();
+      } else if (kind === EV.PROMPT) {
+        $('prompt-text').textContent = text;
+        $('prompt').hidden = !text;
+        $('t-talk').hidden = !text;
+      } else if (kind === EV.PAUSE) {
+        $('pause').hidden = !a;
+        if (a) $('resume').focus(); else $('view').focus();
+      } else if (kind === EV.TALK_OPEN) {
+        const [name, role] = text.split('|');
+        clearTimeout(talkTimer);
+        $('talk-name').textContent = name;
+        $('talk-role').textContent = role;
+        $('talk-log').innerHTML = '';
+        $('talk-choices').innerHTML = '';
+        $('talk-source').textContent = '';
+        $('talk').hidden = false;
+        document.body.classList.add('talking');
+      } else if (kind === EV.TALK_LINE) {
+        const line = text.slice(text.indexOf('|') + 1);
+        if (waitEl) { waitEl.remove(); waitEl = null; }
+        addSay('them', line, 'them');
+        $('talk-source').innerHTML = 'This line was <b>' + SOURCES[a | 0] + '</b> and checked by the guard. ';
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.textContent = window.SkyLLM && window.SkyLLM.state === 'ready' ? 'Inspect (T)' : 'Try the live AI model (T)';
+        more.addEventListener('click', () => { $('dev').hidden = false; renderDevStats(); });
+        $('talk-source').appendChild(more);
+      } else if (kind === EV.TALK_WAIT) {
+        if (a && !waitEl) waitEl = addSay('them', 'Thinking…', 'them wait');
+        if (!a && waitEl) { waitEl.remove(); waitEl = null; }
+        document.querySelectorAll('#talk-choices button, #talk-form button').forEach((b) => { b.disabled = !!a; });
+      } else if (kind === EV.TALK_CHOICES) {
+        const box = $('talk-choices');
+        box.innerHTML = '';
+        text.split(';').filter(Boolean).forEach((c, i) => {
+          const k = c.indexOf(':');
+          const intent = Number(c.slice(0, k)), label = c.slice(k + 1);
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.innerHTML = '<kbd>' + (i + 1) + '</kbd>';
+          b.appendChild(document.createTextNode(label));
+          b.addEventListener('click', () => choose(intent, label));
+          box.appendChild(b);
+        });
+      } else if (kind === EV.TALK_CLOSE) {
+        $('talk-choices').innerHTML = '';
+        clearTimeout(talkTimer);
+        const close = () => { $('talk').hidden = true; document.body.classList.remove('talking'); $('view').focus(); };
+        if (a > 0) talkTimer = setTimeout(close, a * 1000); else close();
+      } else if (kind === EV.DEVLOG) {
+        const parts = text.split('|');
+        const [who, intent, source, verdict, notes] = parts;
+        const line = parts.slice(5).join('|');
+        devStats.lines++;
+        if (verdict === 'ok') devStats.ok++; else devStats.rejected++;
+        if (source === 'live' && verdict === 'ok' && who !== 'guard test') devStats.live++;
+        const d = document.createElement('div');
+        if (verdict !== 'ok') d.className = 'bad';
+        const meta = document.createElement('span');
+        meta.className = 'meta';
+        meta.textContent = who + ' · ' + intent + ' · ' + source + ' · ' + (verdict === 'ok' ? 'passed' : 'rejected');
+        d.appendChild(meta);
+        if (notes) { const w = document.createElement('div'); w.className = verdict === 'ok' ? 'line' : 'why'; w.textContent = notes; w.style.cssText = 'padding:0;background:none;border:0'; d.appendChild(w); }
+        const l = document.createElement('div');
+        l.className = 'line';
+        l.style.cssText = 'padding:0;background:none;border:0';
+        l.textContent = '“' + line + '”';
+        d.appendChild(l);
+        $('dev-log').prepend(d);
+        while ($('dev-log').children.length > 80) $('dev-log').lastChild.remove();
+        if (!$('dev').hidden) renderDevStats();
+      } else if (kind === EV.BOSS) {
+        const bar = $('bossbar');
+        bar.hidden = !(b > 0);
+        if (b > 0) {
+          const pips = $('pips');
+          if (pips.children.length !== b) pips.innerHTML = '<span class="pip"></span>'.repeat(b);
+          [...pips.children].forEach((p, i) => p.classList.toggle('gone', i >= b - a));
+        }
+      }
+    },
+    frame(pos) {
+      const b2 = $('bubble2');
+      const show2 = performance.now() < bubble2Until;
+      b2.classList.toggle('fade', !show2);
+      if (show2) {
+        const p = pos.speaker(bubble2Slot);
+        const x = Math.max(16 + b2.offsetWidth / 2, Math.min(window.innerWidth - 16 - b2.offsetWidth / 2, p.x));
+        b2.style.left = x + 'px';
+        b2.style.top = Math.max(16 + b2.offsetHeight, p.y) + 'px';
+      }
+      const b = $('bubble');
+      const show = performance.now() < bubbleUntil && !storyShown;
+      b.classList.toggle('fade', !show);
+      if (show) {
+        const x = Math.max(16 + b.offsetWidth / 2, Math.min(window.innerWidth - 16 - b.offsetWidth / 2, pos.flint.x));
+        const y = Math.max(16 + b.offsetHeight, pos.flint.y);
+        b.style.left = x + 'px';
+        b.style.top = y + 'px';
+      }
+    },
+    fail(msg) {
+      $('loading').classList.add('done');
+      $('error-text').textContent = msg;
+      $('error').hidden = false;
+    },
+  };
+})();
+</script>
+<script src="llm.js"></script>
+<script src="host.js"></script>
+</body>
+</html>
